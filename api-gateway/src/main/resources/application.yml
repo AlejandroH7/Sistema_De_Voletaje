@@ -1,0 +1,69 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: auth-registro
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - StripPrefix=0
+
+        - id: ms-usuarios
+          uri: http://localhost:8081
+          predicates:
+            - Path=/api/usuarios/**
+          filters:
+            - StripPrefix=0
+
+        - id: ms-eventos
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/eventos,/api/eventos/**
+          filters:
+            - StripPrefix=0
+
+        - id: ms-inventario
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/inventario,/api/inventario/**
+          filters:
+            - StripPrefix=0
+
+        - id: ms-reservas
+          uri: http://localhost:8084
+          predicates:
+            - Path=/api/reservas,/api/reservas/**
+          filters:
+            - StripPrefix=0
+
+        - id: ms-pagos
+          uri: http://localhost:8085
+          predicates:
+            - Path=/api/pagos,/api/pagos/**
+          filters:
+            - StripPrefix=0
+
+        - id: ms-notificaciones
+          uri: http://localhost:8086
+          predicates:
+            - Path=/api/notificaciones,/api/notificaciones/**
+          filters:
+            - StripPrefix=0
+
+jwt:
+  secret: sold-out-challenge-live-secret-key-2026-guatemala
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always

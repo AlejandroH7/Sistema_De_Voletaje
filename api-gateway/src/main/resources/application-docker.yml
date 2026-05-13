@@ -1,0 +1,55 @@
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: auth
+          uri: http://ms-usuarios:8081
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - StripPrefix=0
+
+        - id: ms-usuarios
+          uri: http://ms-usuarios:8081
+          predicates:
+            - Path=/api/usuarios/**
+          filters:
+            - StripPrefix=0
+
+        - id: ms-eventos
+          uri: http://ms-eventos:8082
+          predicates:
+            - Path=/api/eventos,/api/eventos/**
+          filters:
+            - StripPrefix=0
+
+        - id: ms-inventario
+          uri: http://ms-inventario:8083
+          predicates:
+            - Path=/api/inventario,/api/inventario/**
+          filters:
+            - StripPrefix=0
+
+        - id: ms-reservas
+          uri: http://ms-reservas:8084
+          predicates:
+            - Path=/api/reservas,/api/reservas/**
+          filters:
+            - StripPrefix=0
+
+        - id: ms-pagos
+          uri: http://ms-pagos:8085
+          predicates:
+            - Path=/api/pagos,/api/pagos/**
+          filters:
+            - StripPrefix=0
+
+        - id: ms-notificaciones
+          uri: http://ms-notificaciones:8086
+          predicates:
+            - Path=/api/notificaciones,/api/notificaciones/**
+          filters:
+            - StripPrefix=0
+
+jwt:
+  secret: ${JWT_SECRET}
