@@ -1,0 +1,15 @@
+package com.soldout.pagos.repository;
+
+import com.soldout.pagos.entity.Pago;
+import java.util.Optional;
+import java.util.UUID;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface PagoRepository extends JpaRepository<Pago, UUID> {
+
+    Optional<Pago> findByClaveIdempotencia(String claveIdempotencia);
+
+    boolean existsByClaveIdempotencia(String claveIdempotencia);
+
+    Optional<Pago> findByReservaId(UUID reservaId);
+}
