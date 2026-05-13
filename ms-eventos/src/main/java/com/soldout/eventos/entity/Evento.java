@@ -1,10 +1,13 @@
-package com.soldout.usuarios.entity;
+package com.soldout.eventos.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -12,30 +15,31 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "usuarios")
-public class Usuario {
+@Table(name = "eventos")
+public class Evento {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "nombre", nullable = false, length = 200)
+    @Column(name = "nombre", nullable = false)
     private String nombre;
 
-    @Column(name = "email", nullable = false, unique = true, length = 255)
-    private String email;
+    @Column(name = "descripcion")
+    private String descripcion;
 
-    @Column(name = "contrasena_hash", nullable = false)
-    private String contrasenaHash;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "lugar_id", nullable = false)
+    private Lugar lugar;
 
-    @Column(name = "telefono", length = 20)
-    private String telefono;
+    @Column(name = "fecha_evento", nullable = false)
+    private LocalDateTime fechaEvento;
 
-    @Column(name = "rol", nullable = false, length = 20)
-    private String rol = "CLIENTE";
+    @Column(name = "tipo_evento", nullable = false)
+    private String tipoEvento;
 
-    @Column(name = "estado", nullable = false, length = 20)
-    private String estado = "ACTIVO";
+    @Column(name = "estado", nullable = false)
+    private String estado = "BORRADOR";
 
     @Column(name = "creado_en", nullable = false)
     private LocalDateTime creadoEn;
@@ -44,14 +48,14 @@ public class Usuario {
     private LocalDateTime actualizadoEn;
 
     @PrePersist
-    void prePersist() {
+    public void prePersist() {
         LocalDateTime ahora = LocalDateTime.now();
         creadoEn = ahora;
         actualizadoEn = ahora;
     }
 
     @PreUpdate
-    void preUpdate() {
+    public void preUpdate() {
         actualizadoEn = LocalDateTime.now();
     }
 
@@ -71,36 +75,36 @@ public class Usuario {
         this.nombre = nombre;
     }
 
-    public String getEmail() {
-        return email;
+    public String getDescripcion() {
+        return descripcion;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public void setDescripcion(String descripcion) {
+        this.descripcion = descripcion;
     }
 
-    public String getContrasenaHash() {
-        return contrasenaHash;
+    public Lugar getLugar() {
+        return lugar;
     }
 
-    public void setContrasenaHash(String contrasenaHash) {
-        this.contrasenaHash = contrasenaHash;
+    public void setLugar(Lugar lugar) {
+        this.lugar = lugar;
     }
 
-    public String getTelefono() {
-        return telefono;
+    public LocalDateTime getFechaEvento() {
+        return fechaEvento;
     }
 
-    public void setTelefono(String telefono) {
-        this.telefono = telefono;
+    public void setFechaEvento(LocalDateTime fechaEvento) {
+        this.fechaEvento = fechaEvento;
     }
 
-    public String getRol() {
-        return rol;
+    public String getTipoEvento() {
+        return tipoEvento;
     }
 
-    public void setRol(String rol) {
-        this.rol = rol;
+    public void setTipoEvento(String tipoEvento) {
+        this.tipoEvento = tipoEvento;
     }
 
     public String getEstado() {

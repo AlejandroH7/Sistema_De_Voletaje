@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${DB_RESERVAS}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+
+reserva:
+  ttl-segundos: ${RESERVA_TTL_SEGUNDOS}
