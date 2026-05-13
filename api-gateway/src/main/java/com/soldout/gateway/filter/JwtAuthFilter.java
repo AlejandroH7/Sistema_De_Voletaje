@@ -4,6 +4,8 @@ import com.soldout.gateway.security.JwtUtil;
 import io.jsonwebtoken.Claims;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -21,6 +23,7 @@ import reactor.core.publisher.Mono;
 @Component
 public class JwtAuthFilter implements GlobalFilter, Ordered {
 
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthFilter.class);
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String ERROR_NO_AUTORIZADO = "{\"exito\":false,\"mensaje\":\"No autorizado\",\"codigo_error\":\"TOKEN_INVALIDO\",\"datos\":null}";
     private static final Set<String> ROLES_GESTION_EVENTOS = Set.of("ORGANIZADOR", "ADMIN");
@@ -36,6 +39,7 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getURI().getPath();
         HttpMethod method = request.getMethod();
+        log.info("FILTRO → método: {}, path: {}, esPublica: {}", method, path, esRutaPublica(method, path));
 
         if (esRutaPublica(method, path)) {
             return chain.filter(exchange);

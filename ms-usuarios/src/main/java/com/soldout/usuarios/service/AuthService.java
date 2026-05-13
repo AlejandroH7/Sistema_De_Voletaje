@@ -10,6 +10,8 @@ import com.soldout.usuarios.security.JwtUtil;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class AuthService {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
     private static final Set<String> ROLES_VALIDOS = Set.of("CLIENTE", "ORGANIZADOR", "ADMIN");
 
     private final UsuarioRepository usuarioRepository;
@@ -50,28 +53,49 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public LoginResponse login(LoginRequest request) {
-        Usuario usuario = usuarioRepository.findByEmail(normalizarEmail(request.email()))
-            .orElseThrow(() -> new NegocioException(
-                "Credenciales invalidas",
-                "CREDENCIALES_INVALIDAS",
-                HttpStatus.UNAUTHORIZED
-            ));
-
-        if (!passwordEncoder.matches(request.contrasena(), usuario.getContrasenaHash())) {
+        log.info("LOGIN - Iniciando para email: {}", request.email());
+        
+        String emailNormalizado = normalizarEmail(request.email());
+        log.info("LOGIN - Email normalizado: {}", emailNormalizado);
+        
+        Usuario usuario = usuarioRepository.findByEmail(emailNormalizado)
+            .orElseThrow(() -> {
+                log.warn("LOGIN - Usuario no encontrado: {}", emailNormalizado);
+                return new NegocioException(
+                    "Credenciales invalidas",
+                    "CREDENCIALES_INVALIDAS",
+                    HttpStatus.UNAUTHORIZED
+                );
+            });
+        
+        log.info("LOGIN - Usuario encontrado: {}, estado: {}, rol: {}", 
+            usuario.getEmail(), usuario.getEstado(), usuario.getRol());
+        
+        boolean coincide = passwordEncoder.matches(request.contrasena(), usuario.getContrasenaHash());
+        log.info("LOGIN - Contraseña coincide: {}", coincide);
+        
+        if (!coincide) {
             throw new NegocioException("Credenciales invalidas", "CREDENCIALES_INVALIDAS", HttpStatus.UNAUTHORIZED);
         }
-
+        
         if ("BLOQUEADO".equals(usuario.getEstado())) {
             throw new NegocioException("Usuario bloqueado", "USUARIO_BLOQUEADO", HttpStatus.FORBIDDEN);
         }
-
-        String token = jwtUtil.generarToken(usuario);
-        return new LoginResponse(
-            token,
-            "Bearer",
-            jwtUtil.obtenerExpiracion(token),
-            convertirUsuarioLogin(usuario)
-        );
+        
+        log.info("LOGIN - Generando token JWT...");
+        try {
+            String token = jwtUtil.generarToken(usuario);
+            log.info("LOGIN - Token generado exitosamente, longitud: {}", token.length());
+            return new LoginResponse(
+                token,
+                "Bearer",
+                jwtUtil.obtenerExpiracion(token),
+                convertirUsuarioLogin(usuario)
+            );
+        } catch (Exception e) {
+            log.error("LOGIN - Error generando token: {}", e.getMessage(), e);
+            throw e;
+        }
     }
 
     @Transactional(readOnly = true)

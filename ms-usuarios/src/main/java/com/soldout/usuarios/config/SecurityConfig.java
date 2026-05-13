@@ -1,42 +1,33 @@
 package com.soldout.usuarios.config;
 
-import com.soldout.usuarios.security.JwtUtil;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpHeaders;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.web.filter.OncePerRequestFilter;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtUtil jwtUtil) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .sessionManagement(session -> session
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/registro", "/api/auth/login", "/api/usuarios/perfil", "/actuator/health").permitAll()
+                .requestMatchers(
+                    HttpMethod.POST, "/api/auth/registro", "/api/auth/login"
+                ).permitAll()
+                .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                 .anyRequest().authenticated()
-            )
-            .addFilterBefore(new JwtAuthenticationFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class);
-
+            );
         return http.build();
     }
 
@@ -45,32 +36,11 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    private static class JwtAuthenticationFilter extends OncePerRequestFilter {
-
-        private final JwtUtil jwtUtil;
-
-        private JwtAuthenticationFilter(JwtUtil jwtUtil) {
-            this.jwtUtil = jwtUtil;
-        }
-
-        @Override
-        protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-                throws ServletException, IOException {
-            String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
-            if (authorization != null && authorization.startsWith("Bearer ")) {
-                String token = authorization.substring(7);
-                if (jwtUtil.esTokenValido(token)) {
-                    String email = jwtUtil.obtenerEmail(token);
-                    String rol = jwtUtil.obtenerRol(token);
-                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        email,
-                        null,
-                        List.of(new SimpleGrantedAuthority("ROLE_" + rol))
-                    );
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                }
-            }
-            filterChain.doFilter(request, response);
-        }
+    @Bean
+    public UserDetailsService userDetailsService() {
+        return username -> {
+            throw new org.springframework.security.core.userdetails
+                .UsernameNotFoundException("No aplica");
+        };
     }
 }

@@ -5,7 +5,6 @@ import com.soldout.usuarios.entity.Usuario;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
@@ -74,10 +73,7 @@ public class JwtUtil {
 
     private Key obtenerLlave() {
         String secret = jwtConfig.secret();
-        try {
-            return Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
-        } catch (IllegalArgumentException exception) {
-            return Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-        }
+        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 }
