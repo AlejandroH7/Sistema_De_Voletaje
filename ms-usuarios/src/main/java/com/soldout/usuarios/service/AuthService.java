@@ -5,6 +5,7 @@ import com.soldout.usuarios.dto.LoginResponse;
 import com.soldout.usuarios.dto.RegistroRequest;
 import com.soldout.usuarios.entity.Usuario;
 import com.soldout.usuarios.exception.NegocioException;
+import com.soldout.usuarios.kafka.UsuarioProducer;
 import com.soldout.usuarios.repository.UsuarioRepository;
 import com.soldout.usuarios.security.JwtUtil;
 import java.util.LinkedHashMap;
@@ -26,11 +27,17 @@ public class AuthService {
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final UsuarioProducer usuarioProducer;
 
-    public AuthService(UsuarioRepository usuarioRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil) {
+    public AuthService(
+            UsuarioRepository usuarioRepository,
+            PasswordEncoder passwordEncoder,
+            JwtUtil jwtUtil,
+            UsuarioProducer usuarioProducer) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
+        this.usuarioProducer = usuarioProducer;
     }
 
     @Transactional
@@ -48,7 +55,9 @@ public class AuthService {
         usuario.setRol(obtenerRol(request.rol()));
         usuario.setEstado("ACTIVO");
 
-        return convertirUsuario(usuarioRepository.save(usuario));
+        Usuario guardado = usuarioRepository.save(usuario);
+        usuarioProducer.publicarUsuarioRegistrado(guardado);
+        return convertirUsuario(guardado);
     }
 
     @Transactional(readOnly = true)

@@ -3,6 +3,8 @@ spring:
     url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${DB_USUARIOS}
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
 
 jwt:
   secret: ${JWT_SECRET}
