@@ -26,6 +26,7 @@ public class SecurityConfig {
                     HttpMethod.POST, "/api/auth/registro", "/api/auth/login"
                 ).permitAll()
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                .requestMatchers("/actuator/**").permitAll()
                 .anyRequest().authenticated()
             );
         return http.build();
