@@ -1,20 +1,13 @@
 package com.soldout.pagos.controller;
 
-import com.soldout.pagos.dto.CrearPagoRequest;
-import com.soldout.pagos.dto.PagoResponse;
 import com.soldout.pagos.dto.RespuestaApi;
+import com.soldout.pagos.entity.Pago;
 import com.soldout.pagos.service.PagoService;
-import jakarta.validation.Valid;
-import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import java.math.BigDecimal;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/pagos")
@@ -27,23 +20,46 @@ public class PagoController {
     }
 
     @PostMapping
-    public ResponseEntity<RespuestaApi<PagoResponse>> crear(
-        @Valid @RequestBody CrearPagoRequest request,
-        @RequestHeader("Idempotency-Key") String claveIdempotencia,
-        @RequestHeader("X-Usuario-Id") String usuarioId
-    ) {
-        PagoResponse pago = pagoService.crearPago(request, claveIdempotencia, usuarioId);
-        HttpStatus estado = "PENDIENTE".equals(pago.estado()) ? HttpStatus.ACCEPTED : HttpStatus.OK;
-        return ResponseEntity.status(estado).body(RespuestaApi.exito("Pago pendiente", pago));
+    public ResponseEntity<RespuestaApi<Pago>> procesarPago(
+            @RequestHeader(value = "Idempotency-Key",
+                           required = false, defaultValue = "") String claveIdempotencia,
+            @RequestHeader(value = "X-Usuario-Id", required = false) String usuarioIdHeader,
+            @RequestBody java.util.Map<String, Object> body) {
+
+        if (claveIdempotencia.isBlank()) {
+            claveIdempotencia = UUID.randomUUID().toString();
+        }
+
+        UUID reservaId = UUID.fromString(body.get("reserva_id").toString());
+        UUID usuarioId = usuarioIdHeader != null
+            ? UUID.fromString(usuarioIdHeader)
+            : UUID.fromString(body.get("usuario_id").toString());
+        BigDecimal monto = new BigDecimal(body.get("monto").toString());
+        String metodoPago = body.containsKey("metodo_pago")
+            ? body.get("metodo_pago").toString() : "TARJETA";
+
+        Pago pago = pagoService.procesarPago(
+            reservaId, usuarioId, monto, metodoPago, claveIdempotencia);
+
+        String mensaje = "COMPLETADO".equals(pago.getEstado())
+            ? "Pago procesado exitosamente"
+            : "Pago rechazado por el procesador";
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .body(RespuestaApi.exito(mensaje, pago));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<RespuestaApi<PagoResponse>> obtenerPorId(@PathVariable UUID id) {
-        return ResponseEntity.ok(RespuestaApi.exito("Pago encontrado", pagoService.obtenerPorId(id)));
+    public ResponseEntity<RespuestaApi<Pago>> obtenerPorId(@PathVariable UUID id) {
+        return ResponseEntity.ok(
+            RespuestaApi.exito("Pago encontrado", pagoService.obtenerPorId(id)));
     }
 
     @GetMapping("/reserva/{reservaId}")
-    public ResponseEntity<RespuestaApi<PagoResponse>> obtenerPorReserva(@PathVariable UUID reservaId) {
-        return ResponseEntity.ok(RespuestaApi.exito("Pago encontrado", pagoService.obtenerPorReserva(reservaId)));
+    public ResponseEntity<RespuestaApi<Pago>> obtenerPorReserva(
+            @PathVariable UUID reservaId) {
+        return ResponseEntity.ok(
+            RespuestaApi.exito("Pago de la reserva",
+                pagoService.obtenerPorReservaId(reservaId)));
     }
 }
