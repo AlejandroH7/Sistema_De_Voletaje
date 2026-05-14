@@ -1,0 +1,242 @@
+
+╔══════════════════════════════════════════════════════════════════════════════════╗
+║           SOLD-OUT CHALLENGE LIVE — ARCHIVO DE CONTEXTO DEL PROYECTO            ║
+║                    Para compartir con tu asistente de IA                        ║
+╚══════════════════════════════════════════════════════════════════════════════════╝
+
+
+════════════════════════════════════════════════════════════════════════════════════
+PROMPT PARA CHAT DE IA (Claude, ChatGPT, etc.)
+Pega esto al inicio de tu conversación para que el asistente entienda el proyecto
+════════════════════════════════════════════════════════════════════════════════════
+
+Hola. Voy a darte contexto completo sobre el proyecto en el que estoy trabajando
+para que puedas ayudarme de forma precisa durante toda nuestra conversación.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DESCRIPCIÓN GENERAL DEL PROYECTO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+El proyecto se llama "Sold-Out Challenge Live". Es una plataforma de boletaje para
+eventos masivos con alta concurrencia, desarrollada como proyecto final del curso
+de Base de Datos II. El sistema está diseñado para soportar miles de usuarios
+comprando boletos al mismo tiempo para un solo evento, como un concierto de Martin
+Garrix con 30,000 personas en el dance floor.
+
+El objetivo académico es demostrar dominio de:
+- Alta disponibilidad y tolerancia a fallos
+- Consistencia de datos bajo alta concurrencia
+- Mensajería asíncrona con patrones de diseño distribuido
+- Observabilidad y pruebas de carga
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+EQUIPO DE DESARROLLO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- Alejandro (líder técnico): api-gateway, ms-usuarios, infraestructura general
+- Eric: ms-inventario, ms-notificaciones
+- Josue: ms-reservas, ms-eventos
+- Daniel: ms-pagos
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ARQUITECTURA Y STACK TECNOLÓGICO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+El sistema es una arquitectura de microservicios con los siguientes componentes:
+
+MICROSERVICIOS (Java 17 + Spring Boot 3.x):
+  - api-gateway        puerto 8080  → punto de entrada único, JWT, rate limiting
+  - ms-usuarios        puerto 8081  → registro, login, generación de JWT
+  - ms-eventos         puerto 8082  → catálogo de eventos y venues
+  - ms-inventario      puerto 8083  → disponibilidad y reserva de asientos
+  - ms-reservas        puerto 8084  → gestión de reservas y saga de compra
+  - ms-pagos           puerto 8085  → procesamiento de pagos con idempotencia
+  - ms-notificaciones  puerto 8086  → notificaciones via Kafka
+
+INFRAESTRUCTURA:
+  - PostgreSQL     → base de datos principal (1 instancia, 6 bases separadas)
+  - Redis          → caché de disponibilidad y TTL de reservas (10 minutos)
+  - Apache Kafka   → mensajería asíncrona entre microservicios
+  - Docker Compose → orquestación de contenedores (red interna: red-sold-out)
+  - Prometheus     → recolección de métricas (puerto 9090)
+  - Grafana        → dashboards de observabilidad (puerto 3000)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BASES DE DATOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Cada microservicio tiene su propia base de datos. No hay Foreign Keys entre
+bases de datos distintas — las referencias cruzadas son lógicas (UUID compartido).
+
+db_usuarios      → tabla: usuarios
+db_eventos       → tablas: lugares, eventos
+db_inventario    → tablas: secciones, inventario_secciones, mesas, asientos
+db_reservas      → tablas: reservas, detalle_reserva
+db_pagos         → tablas: pagos, pagos_salida
+db_notificaciones → tabla: notificaciones
+
+MODELO DE SECCIONES (concepto clave del sistema):
+Un evento no tiene asientos directamente. Tiene SECCIONES. Cada sección define
+su propio tipo, precio y capacidad. Esto permite eventos mixtos como:
+  - Dance Floor: tipo GENERAL, 30,000 cupos (no importa dónde te pares)
+  - Palco VIP: tipo NUMERADO, 50 asientos con fila y número específico
+  - Mesas Black: tipo NUMERADO con mesas, 50 mesas x 6 personas
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SEGURIDAD Y AUTENTICACIÓN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- Autenticación con JWT (JSON Web Token), expira en 24 horas
+- Contraseñas hasheadas con BCrypt
+- El API Gateway valida el JWT y lo rechaza si es inválido o expirado
+- Roles: CLIENTE (compra boletos), ORGANIZADOR (crea eventos), ADMIN (todo)
+- El gateway inyecta estos headers en cada petición autenticada:
+    X-Usuario-Id:    UUID del usuario
+    X-Usuario-Rol:   CLIENTE | ORGANIZADOR | ADMIN
+    X-Usuario-Email: email del usuario
+- Los microservicios internos NUNCA validan el JWT, solo leen esos headers
+
+RUTAS PÚBLICAS (sin JWT):
+  POST /api/auth/registro, POST /api/auth/login
+  GET /api/eventos, GET /api/eventos/{id}
+  GET /api/inventario/**, GET /actuator/health
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FORMATO ESTÁNDAR DE RESPUESTAS (OBLIGATORIO en todos los servicios)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Respuesta exitosa:
+{
+  "exito": true,
+  "mensaje": "descripción",
+  "datos": { ... },
+  "timestamp": "2026-05-12T18:00:00Z"
+}
+
+Respuesta de error:
+{
+  "exito": false,
+  "mensaje": "descripción del error",
+  "codigo_error": "CODIGO_ERROR",
+  "datos": null,
+  "timestamp": "2026-05-12T18:00:00Z"
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MENSAJERÍA ASÍNCRONA — KAFKA TOPICS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Topic               Producer          Consumidores
+──────────────────────────────────────────────────────────────────────────────
+evento.creado       ms-eventos        ms-inventario
+reserva.creada      ms-reservas       ms-pagos
+pago.confirmado     ms-pagos          ms-reservas, ms-inventario, ms-notificaciones
+pago.fallido        ms-pagos          ms-reservas, ms-inventario, ms-notificaciones
+reserva.expirada    ms-reservas       ms-inventario, ms-notificaciones
+reserva.confirmada  ms-reservas       ms-notificaciones
+
+Consumer groups: grupo-inventario, grupo-pagos, grupo-reservas, grupo-notificaciones
+Política de reintentos: 3 intentos, 1 segundo backoff, luego Dead Letter Topic
+Kafka interno Docker: kafka:29092 | Kafka externo (host): localhost:9092
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FLUJO PRINCIPAL — COMPRA DE BOLETO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. POST /api/auth/login → ms-usuarios genera JWT
+2. GET /api/inventario/{eventoId}/secciones → disponibilidad desde Redis
+3. POST /api/reservas → ms-reservas orquesta la Saga:
+     a. Llama a ms-inventario para reservar asientos (UPDATE atómico)
+     b. Guarda reserva en PENDIENTE
+     c. Guarda TTL en Redis (600 segundos = 10 minutos)
+     d. Publica reserva.creada a Kafka
+4. ms-pagos consume reserva.creada (queda listo para recibir el pago)
+5. POST /api/pagos → ms-pagos procesa con idempotencia:
+     a. Verifica clave_idempotencia (no cobrar dos veces)
+     b. Simula cobro (70% éxito, 30% fallo para pruebas de caos)
+     c. Guarda en pagos_salida (Outbox Pattern)
+     d. Publica pago.confirmado o pago.fallido a Kafka
+6. ms-reservas consume pago.confirmado → reserva pasa a CONFIRMADO
+7. ms-inventario consume pago.confirmado → asientos pasan a VENDIDO
+8. ms-notificaciones consume → envía email de confirmación (simulado con log)
+
+Si el usuario no paga en 10 minutos:
+  - Scheduler de ms-reservas detecta TTL expirado en Redis
+  - Cancela reserva → publica reserva.expirada
+  - ms-inventario libera los asientos
+  - ms-notificaciones notifica al usuario
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PATRONES Y ESTRATEGIAS CRÍTICAS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ANTI-SOBREVENTA (ms-inventario):
+  UPDATE inventario_secciones
+  SET asientos_disponibles = asientos_disponibles - N,
+      asientos_reservados = asientos_reservados + N
+  WHERE seccion_id = ? AND asientos_disponibles >= N
+  → Si rowsAffected = 0 significa que no hay disponibilidad → rechazar
+
+IDEMPOTENCIA (reservas, pagos y notificaciones):
+  - Campo clave_idempotencia VARCHAR(64) UNIQUE en cada tabla crítica
+  - El cliente envía el header Idempotency-Key en cada petición
+  - Antes de procesar: verificar si ya existe ese key en la BD
+  - Si existe → retornar el resultado anterior sin procesar de nuevo
+
+OUTBOX PATTERN (ms-pagos):
+  - Antes de publicar a Kafka, guardar el evento en tabla pagos_salida
+  - Un scheduler lee pagos_salida WHERE publicado = FALSE
+  - Publica a Kafka y marca publicado = TRUE
+  - Garantiza que ningún evento se pierde aunque Kafka falle
+
+OPTIMISTIC LOCKING (ms-inventario):
+  - Campo version BIGINT en inventario_secciones
+  - Se incrementa en cada UPDATE
+  - Previene actualizaciones concurrentes perdidas
+
+CACHÉ REDIS:
+  - inventario:disponible:{seccionId} → disponibilidad (sin TTL, invalidación manual)
+  - reserva:ttl:{reservaId} → "activa" con EX 600 (expira en 10 minutos)
+  - rate:limit:{usuarioId}:{ruta} → counter con EX 60 (rate limiting)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ESTADO ACTUAL DEL PROYECTO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Completado por Alejandro (Día 1):
+  ✅ Repositorio GitHub: https://github.com/AlejandroH7/Sistema_De_Voletaje
+  ✅ Estructura de carpetas del monorepo
+  ✅ docker-compose.yml con todos los servicios
+  ✅ database/init.sql con las 6 bases de datos y todas las tablas
+  ✅ monitoring/prometheus.yml
+  ✅ .env.ejemplo con todas las variables
+  ✅ api-gateway funcionando con filtro JWT y routing
+  ✅ ms-usuarios funcionando con registro, login y generación de JWT
+  ✅ PostgreSQL healthy con las 6 bases de datos verificadas
+  ✅ Guías de desarrollo en docs/guias/ para cada integrante
+
+Pendiente (Días 2 y 3):
+  ⏳ ms-eventos: CRUD + Kafka producer
+  ⏳ ms-inventario: reserva atómica + Redis cache
+  ⏳ ms-reservas: Saga + TTL Redis + Kafka
+  ⏳ ms-pagos: idempotencia + Outbox Pattern
+  ⏳ ms-notificaciones: consumidor Kafka + deduplicación
+  ⏳ Pruebas de carga con k6
+  ⏳ Dashboards de Grafana
+  ⏳ PDF técnico del checkpoint
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+LO QUE NECESITO DE TI (asistente de IA)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Con este contexto puedes ayudarme a:
+- Implementar mi microservicio asignado paso a paso
+- Resolver errores de compilación o ejecución
+- Entender los patrones de diseño que se están usando
+- Generar código Java siguiendo los estándares del proyecto
+- Revisar si mi implementación cumple con los requisitos
+- Preparar pruebas con Postman o curl
+
+Por favor mantén este contexto durante toda nuestra conversación y asegúrate de
+que cualquier código que generes siga los estándares del proyecto (formato de
+respuestas, nombres en español, patrones definidos).
