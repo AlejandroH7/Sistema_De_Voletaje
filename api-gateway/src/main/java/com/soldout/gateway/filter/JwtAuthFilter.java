@@ -91,21 +91,32 @@ public class JwtAuthFilter implements GlobalFilter, Ordered {
     }
 
     private boolean tienePermiso(HttpMethod method, String path, String rol) {
+        // ADMIN puede hacer todo
+        if ("ADMIN".equals(rol)) {
+            return true;
+        }
+
         if (path.startsWith("/api/eventos/") || "/api/eventos".equals(path)) {
             if (HttpMethod.POST.equals(method) || HttpMethod.PUT.equals(method)) {
                 return ROLES_GESTION_EVENTOS.contains(rol);
             }
         }
 
+        if (path.startsWith("/api/lugares/") || "/api/lugares".equals(path)) {
+            if (HttpMethod.POST.equals(method)) {
+                return ROLES_GESTION_EVENTOS.contains(rol);
+            }
+        }
+
         if (path.startsWith("/api/reservas/") || "/api/reservas".equals(path)) {
             if (HttpMethod.POST.equals(method)) {
-                return "CLIENTE".equals(rol);
+                return "CLIENTE".equals(rol) || "ADMIN".equals(rol);
             }
         }
 
         if (path.startsWith("/api/pagos/") || "/api/pagos".equals(path)) {
             if (HttpMethod.POST.equals(method)) {
-                return "CLIENTE".equals(rol);
+                return "CLIENTE".equals(rol) || "ADMIN".equals(rol);
             }
         }
 

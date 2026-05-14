@@ -16,6 +16,13 @@ spring:
           filters:
             - StripPrefix=0
 
+        - id: ms-lugares
+          uri: http://ms-eventos:8082
+          predicates:
+            - Path=/api/lugares,/api/lugares/**
+          filters:
+            - StripPrefix=0
+
         - id: ms-eventos
           uri: http://ms-eventos:8082
           predicates:

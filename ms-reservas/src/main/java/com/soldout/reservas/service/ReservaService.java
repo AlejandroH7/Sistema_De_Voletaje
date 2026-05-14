@@ -18,7 +18,6 @@ import org.springframework.web.client.RestTemplate;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -67,23 +66,40 @@ public class ReservaService {
         // Reservar asientos en ms-inventario via REST
         for (CrearReservaRequest.ItemReserva item : request.getItems()) {
             try {
-                Map<String, Object> body = Map.of(
-                    "reservaId", UUID.randomUUID().toString(),
-                    "cantidad",  item.getCantidad()
-                );
-                restTemplate.postForEntity(
-                    URL_INVENTARIO + "/api/inventario/" +
-                    item.getSeccionId() + "/reservar",
-                    body, Object.class
-                );
+                String url = URL_INVENTARIO + "/api/inventario/" +
+                    item.getSeccionId() + "/reservar";
+
+                org.springframework.http.HttpHeaders headers =
+                    new org.springframework.http.HttpHeaders();
+                headers.setContentType(
+                    org.springframework.http.MediaType.APPLICATION_JSON);
+
+                String body = "{\"reservaId\":\"" +
+                    java.util.UUID.randomUUID() + "\",\"cantidad\":" +
+                    item.getCantidad() + "}";
+
+                org.springframework.http.HttpEntity<String> entity =
+                    new org.springframework.http.HttpEntity<>(body, headers);
+
+                restTemplate.exchange(url,
+                    org.springframework.http.HttpMethod.POST,
+                    entity, String.class);
+
                 log.info("INVENTARIO RESERVADO - seccion: {}, cantidad: {}",
                     item.getSeccionId(), item.getCantidad());
-            } catch (Exception e) {
+            } catch (org.springframework.web.client.HttpClientErrorException e) {
                 log.error("ERROR reservando en inventario: {}", e.getMessage());
                 throw new NegocioException(
                     "No hay suficientes asientos disponibles",
                     "ASIENTOS_NO_DISPONIBLES",
                     HttpStatus.CONFLICT
+                );
+            } catch (Exception e) {
+                log.error("ERROR llamando a inventario: {}", e.getMessage());
+                throw new NegocioException(
+                    "Error al comunicarse con el servicio de inventario",
+                    "ERROR_INVENTARIO",
+                    HttpStatus.SERVICE_UNAVAILABLE
                 );
             }
         }

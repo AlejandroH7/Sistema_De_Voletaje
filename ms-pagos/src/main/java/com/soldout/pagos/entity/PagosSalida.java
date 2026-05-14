@@ -9,6 +9,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import org.hibernate.annotations.ColumnTransformer;
 
 @Entity
 @Table(name = "pagos_salida")
@@ -24,7 +25,8 @@ public class PagosSalida {
     @Column(name = "tipo_evento", nullable = false, length = 100)
     private String tipoEvento;
 
-    @Column(nullable = false, columnDefinition = "jsonb")
+    @Column(name = "payload", nullable = false, columnDefinition = "jsonb")
+    @ColumnTransformer(write = "?::jsonb")
     private String payload;
 
     @Column(nullable = false)
