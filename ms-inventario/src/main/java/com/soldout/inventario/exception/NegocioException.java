@@ -3,6 +3,7 @@ package com.soldout.inventario.exception;
 import org.springframework.http.HttpStatus;
 
 public class NegocioException extends RuntimeException {
+
     private final String codigoError;
     private final HttpStatus estadoHttp;
 
@@ -12,6 +13,11 @@ public class NegocioException extends RuntimeException {
         this.estadoHttp = estadoHttp;
     }
 
-    public String getCodigoError() { return codigoError; }
-    public HttpStatus getEstadoHttp() { return estadoHttp; }
+    public String getCodigoError() {
+        return codigoError;
+    }
+
+    public HttpStatus getEstadoHttp() {
+        return estadoHttp;
+    }
 }

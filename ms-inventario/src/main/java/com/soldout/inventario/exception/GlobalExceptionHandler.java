@@ -2,6 +2,7 @@ package com.soldout.inventario.exception;
 
 import com.soldout.inventario.dto.RespuestaApi;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -12,6 +13,17 @@ public class GlobalExceptionHandler {
     public ResponseEntity<RespuestaApi<Void>> manejarNegocio(NegocioException ex) {
         return ResponseEntity.status(ex.getEstadoHttp())
             .body(RespuestaApi.error(ex.getMessage(), ex.getCodigoError()));
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<RespuestaApi<Void>> manejarValidacion(MethodArgumentNotValidException ex) {
+        String mensaje = ex.getBindingResult().getFieldErrors().stream()
+            .findFirst()
+            .map(error -> error.getDefaultMessage())
+            .orElse("Solicitud invalida");
+
+        return ResponseEntity.badRequest()
+            .body(RespuestaApi.error(mensaje, "SOLICITUD_INVALIDA"));
     }
 
     @ExceptionHandler(Exception.class)
