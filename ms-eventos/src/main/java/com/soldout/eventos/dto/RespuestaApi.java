@@ -1,11 +1,15 @@
 package com.soldout.eventos.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.Instant;
 
 public class RespuestaApi<T> {
     private boolean exito;
     private String mensaje;
     private T datos;
+    @JsonProperty("codigo_error")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String codigoError;
     private String timestamp;
 

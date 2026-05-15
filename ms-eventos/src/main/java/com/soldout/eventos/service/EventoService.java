@@ -9,7 +9,9 @@ import com.soldout.eventos.kafka.EventoProducer;
 import com.soldout.eventos.repository.EventoRepository;
 import com.soldout.eventos.repository.LugarRepository;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +22,8 @@ public class EventoService {
     private final EventoRepository eventoRepository;
     private final LugarRepository lugarRepository;
     private final EventoProducer eventoProducer;
+    private final Map<UUID, List<CrearEventoRequest.SeccionRequest>> seccionesPendientes =
+            new ConcurrentHashMap<>();
 
     public EventoService(
             EventoRepository eventoRepository,
@@ -55,7 +59,11 @@ public class EventoService {
         evento.setFechaEvento(request.getFechaEvento());
         evento.setTipoEvento(request.getTipoEvento());
         evento.setEstado("BORRADOR");
-        return eventoRepository.save(evento);
+        Evento guardado = eventoRepository.save(evento);
+        if (request.getSecciones() != null && !request.getSecciones().isEmpty()) {
+            seccionesPendientes.put(guardado.getId(), List.copyOf(request.getSecciones()));
+        }
+        return guardado;
     }
 
     @Transactional(readOnly = true)
@@ -85,7 +93,18 @@ public class EventoService {
         }
         evento.setEstado("ACTIVO");
         Evento guardado = eventoRepository.save(evento);
-        eventoProducer.publicarEventoCreado(guardado, secciones);
+        List<CrearEventoRequest.SeccionRequest> seccionesEvento =
+                secciones != null && !secciones.isEmpty()
+                        ? secciones
+                        : seccionesPendientes.remove(id);
+        seccionesPendientes.remove(id);
+        if (seccionesEvento == null || seccionesEvento.isEmpty()) {
+            throw new NegocioException(
+                    "El evento debe tener al menos una seccion para publicarse",
+                    "SECCIONES_REQUERIDAS",
+                    HttpStatus.BAD_REQUEST);
+        }
+        eventoProducer.publicarEventoCreado(guardado, seccionesEvento);
         return guardado;
     }
 }

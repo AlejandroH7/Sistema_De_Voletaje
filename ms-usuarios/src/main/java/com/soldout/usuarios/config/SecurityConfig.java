@@ -25,6 +25,7 @@ public class SecurityConfig {
                 .requestMatchers(
                     HttpMethod.POST, "/api/auth/registro", "/api/auth/login"
                 ).permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/usuarios/perfil").permitAll()
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                 .requestMatchers("/actuator/**").permitAll()
                 .anyRequest().authenticated()
