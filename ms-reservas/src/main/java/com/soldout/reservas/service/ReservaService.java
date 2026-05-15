@@ -110,7 +110,7 @@ public class ReservaService {
         reserva.setEventoId(request.getEventoId());
         BigDecimal precioTotal = BigDecimal.ZERO;
         for (CrearReservaRequest.ItemReserva item : request.getItems()) {
-            BigDecimal precioUnitario = obtenerPrecioSeccion(item.getSeccionId());
+            BigDecimal precioUnitario = obtenerPrecioSeccion(item.getSeccionId(), request.getEventoId());
             precioTotal = precioTotal.add(
                 precioUnitario.multiply(BigDecimal.valueOf(item.getCantidad()))
             );
@@ -131,7 +131,7 @@ public class ReservaService {
                 ? item.getTipoAsiento() : "GENERAL");
             detalle.setCantidad(item.getCantidad());
             detalle.setNombreSeccion("Seccion " + item.getSeccionId());
-            detalle.setPrecioUnitario(obtenerPrecioSeccion(item.getSeccionId()));
+            detalle.setPrecioUnitario(obtenerPrecioSeccion(item.getSeccionId(), request.getEventoId()));
             detalleRepo.save(detalle);
         }
 
@@ -151,16 +151,21 @@ public class ReservaService {
         return guardada;
     }
 
-    private BigDecimal obtenerPrecioSeccion(UUID seccionId) {
+    private BigDecimal obtenerPrecioSeccion(UUID seccionId, UUID eventoId) {
         try {
-            String url = URL_INVENTARIO + "/api/inventario/" + seccionId + "/secciones";
+            String url = URL_INVENTARIO + "/api/inventario/" + eventoId + "/secciones";
             String respuesta = restTemplate.getForObject(url, String.class);
             com.fasterxml.jackson.databind.ObjectMapper mapper =
                 new com.fasterxml.jackson.databind.ObjectMapper();
-            com.fasterxml.jackson.databind.JsonNode nodo = mapper.readTree(respuesta);
-            com.fasterxml.jackson.databind.JsonNode datos = nodo.get("datos");
-            if (datos != null && datos.isArray() && datos.size() > 0) {
-                return new BigDecimal(datos.get(0).get("seccion").get("precio").asText());
+            com.fasterxml.jackson.databind.JsonNode datos =
+                mapper.readTree(respuesta).get("datos");
+            if (datos != null && datos.isArray()) {
+                for (com.fasterxml.jackson.databind.JsonNode inv : datos) {
+                    com.fasterxml.jackson.databind.JsonNode sec = inv.get("seccion");
+                    if (sec != null && seccionId.toString().equals(sec.get("id").asText())) {
+                        return new BigDecimal(sec.get("precio").asText());
+                    }
+                }
             }
         } catch (Exception e) {
             log.warn("No se pudo obtener precio de seccion {}: {}", seccionId, e.getMessage());

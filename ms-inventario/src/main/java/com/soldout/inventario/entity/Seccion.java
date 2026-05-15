@@ -1,5 +1,6 @@
 package com.soldout.inventario.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -47,6 +48,7 @@ public class Seccion {
     @Column(name = "creado_en", nullable = false)
     private LocalDateTime creadoEn;
 
+    @JsonIgnore
     @OneToOne(mappedBy = "seccion", cascade = CascadeType.ALL)
     private InventarioSeccion inventarioSeccion;
 
