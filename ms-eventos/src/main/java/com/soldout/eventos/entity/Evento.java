@@ -1,5 +1,6 @@
 package com.soldout.eventos.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -28,9 +29,13 @@ public class Evento {
     @Column(name = "descripcion")
     private String descripcion;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "lugar_id", nullable = false)
     private Lugar lugar;
+
+    @Column(name = "lugar_id", insertable = false, updatable = false)
+    private UUID lugarId;
 
     @Column(name = "fecha_evento", nullable = false)
     private LocalDateTime fechaEvento;
@@ -89,6 +94,10 @@ public class Evento {
 
     public void setLugar(Lugar lugar) {
         this.lugar = lugar;
+    }
+
+    public UUID getLugarId() {
+        return lugarId;
     }
 
     public LocalDateTime getFechaEvento() {

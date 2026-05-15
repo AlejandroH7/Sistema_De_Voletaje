@@ -108,7 +108,14 @@ public class ReservaService {
         Reserva reserva = new Reserva();
         reserva.setUsuarioId(usuarioId);
         reserva.setEventoId(request.getEventoId());
-        reserva.setPrecioTotal(BigDecimal.valueOf(100));
+        BigDecimal precioTotal = BigDecimal.ZERO;
+        for (CrearReservaRequest.ItemReserva item : request.getItems()) {
+            BigDecimal precioUnitario = obtenerPrecioSeccion(item.getSeccionId());
+            precioTotal = precioTotal.add(
+                precioUnitario.multiply(BigDecimal.valueOf(item.getCantidad()))
+            );
+        }
+        reserva.setPrecioTotal(precioTotal);
         reserva.setEstado("PENDIENTE");
         reserva.setClaveIdempotencia(claveIdempotencia);
         reserva.setExpiraEn(LocalDateTime.now().plusSeconds(ttlSegundos));
@@ -124,7 +131,7 @@ public class ReservaService {
                 ? item.getTipoAsiento() : "GENERAL");
             detalle.setCantidad(item.getCantidad());
             detalle.setNombreSeccion("Seccion " + item.getSeccionId());
-            detalle.setPrecioUnitario(BigDecimal.valueOf(100));
+            detalle.setPrecioUnitario(obtenerPrecioSeccion(item.getSeccionId()));
             detalleRepo.save(detalle);
         }
 
@@ -142,6 +149,23 @@ public class ReservaService {
         reservaProducer.publicarReservaCreada(guardada);
 
         return guardada;
+    }
+
+    private BigDecimal obtenerPrecioSeccion(UUID seccionId) {
+        try {
+            String url = URL_INVENTARIO + "/api/inventario/" + seccionId + "/secciones";
+            String respuesta = restTemplate.getForObject(url, String.class);
+            com.fasterxml.jackson.databind.ObjectMapper mapper =
+                new com.fasterxml.jackson.databind.ObjectMapper();
+            com.fasterxml.jackson.databind.JsonNode nodo = mapper.readTree(respuesta);
+            com.fasterxml.jackson.databind.JsonNode datos = nodo.get("datos");
+            if (datos != null && datos.isArray() && datos.size() > 0) {
+                return new BigDecimal(datos.get(0).get("seccion").get("precio").asText());
+            }
+        } catch (Exception e) {
+            log.warn("No se pudo obtener precio de seccion {}: {}", seccionId, e.getMessage());
+        }
+        return BigDecimal.valueOf(100);
     }
 
     @Transactional(readOnly = true)

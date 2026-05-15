@@ -1,5 +1,6 @@
 package com.soldout.eventos.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -38,6 +39,7 @@ public class Lugar {
     @Column(name = "creado_en", nullable = false)
     private LocalDateTime creadoEn;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "lugar", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Evento> eventos = new ArrayList<>();
 
