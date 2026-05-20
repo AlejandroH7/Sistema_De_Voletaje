@@ -237,3 +237,14 @@ CREATE INDEX idx_notif_reserva_id   ON notificaciones.notificaciones (reserva_id
 CREATE INDEX idx_notif_tipo         ON notificaciones.notificaciones (tipo);
 CREATE INDEX idx_notif_estado       ON notificaciones.notificaciones (estado);
 CREATE INDEX idx_notif_idempotencia ON notificaciones.notificaciones (clave_idempotencia);
+
+-- =============================================================================
+--  USUARIO DE REPLICACIÓN
+-- =============================================================================
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT FROM pg_user WHERE usename = 'replicador') THEN
+    CREATE USER replicador WITH REPLICATION ENCRYPTED PASSWORD 'replicador123';
+  END IF;
+END
+$$;
