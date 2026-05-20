@@ -1,0 +1,5 @@
+# Backup diario a las 2:00 AM
+0 2 * * * /scripts/backup.sh >> /var/log/backup.log 2>&1
+
+# Backup semanal completo los domingos a las 3:00 AM
+0 3 * * 0 /scripts/backup.sh >> /var/log/backup.log 2>&1

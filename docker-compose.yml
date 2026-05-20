@@ -5,6 +5,7 @@ networks:
 volumes:
   postgres_data:
   postgres_replica_data:
+  backup_data:
   redis_data:
   grafana_data:
 
@@ -72,6 +73,33 @@ services:
       timeout: 5s
       retries: 10
       start_period: 30s
+
+  backup-scheduler:
+    image: postgres:15-alpine
+    container_name: soldout-backup-scheduler
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST:     postgres
+      POSTGRES_PORT:     5432
+    volumes:
+      - backup_data:/backups
+      - ./database/backup.sh:/scripts/backup.sh:ro
+      - ./database/restore.sh:/scripts/restore.sh:ro
+      - ./database/backup-cron:/etc/crontabs/root:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - red-sold-out
+    entrypoint: >
+      sh -c "
+        echo 'Instalando cliente PostgreSQL...' &&
+        apk add --no-cache postgresql-client &&
+        echo 'Iniciando cron...' &&
+        crond -f -l 2
+      "
 
   redis:
     image: redis:7-alpine
