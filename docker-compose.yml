@@ -4,6 +4,7 @@ networks:
 
 volumes:
   postgres_data:
+  postgres_replica_data:
   redis_data:
   grafana_data:
 
@@ -17,11 +18,20 @@ services:
       POSTGRES_USER:     ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB:       soldout_db
+      POSTGRES_REPLICATION_USER: replicador
+      POSTGRES_REPLICATION_PASSWORD: replicador123
     ports:
       - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./database/init_replication.sh:/docker-entrypoint-initdb.d/00_replication.sh:ro
       - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./database/primary.conf:/etc/postgresql/postgresql.conf:ro
+      - ./database/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+    command: >
+      postgres
+      -c config_file=/etc/postgresql/postgresql.conf
+      -c hba_file=/etc/postgresql/pg_hba.conf
     networks:
       - red-sold-out
     healthcheck:
@@ -30,6 +40,38 @@ services:
       timeout: 5s
       retries: 10
       start_period: 20s
+
+  postgres-replica:
+    image: postgres:15-alpine
+    container_name: soldout-postgres-replica
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB:       soldout_db
+      PGUSER:            ${POSTGRES_USER}
+      PGPASSWORD:        ${POSTGRES_PASSWORD}
+      PRIMARY_HOST:      postgres
+      PRIMARY_PORT:      5432
+      REPLICATION_USER:  replicador
+      REPLICATION_PASSWORD: replicador123
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_replica_data:/var/lib/postgresql/data
+      - ./database/replica.conf:/etc/postgresql/postgresql.conf:ro
+      - ./database/setup_replica.sh:/docker-entrypoint-initdb.d/setup_replica.sh:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - red-sold-out
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d soldout_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
 
   redis:
     image: redis:7-alpine
@@ -153,7 +195,7 @@ services:
       - "${PORT_USUARIOS}:8081"
     environment:
       SPRING_PROFILES_ACTIVE:     docker
-      SPRING_DATASOURCE_URL:      jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/soldout_db
+      SPRING_DATASOURCE_URL:      jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/soldout_db?currentSchema=usuarios
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET:                 ${JWT_SECRET}
@@ -174,7 +216,7 @@ services:
       - "${PORT_EVENTOS}:8082"
     environment:
       SPRING_PROFILES_ACTIVE:     docker
-      SPRING_DATASOURCE_URL:      jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/soldout_db
+      SPRING_DATASOURCE_URL:      jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/soldout_db?currentSchema=eventos
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       KAFKA_BOOTSTRAP_SERVERS:    ${KAFKA_BOOTSTRAP_SERVERS}
@@ -196,7 +238,7 @@ services:
       - "${PORT_INVENTARIO}:8083"
     environment:
       SPRING_PROFILES_ACTIVE:     docker
-      SPRING_DATASOURCE_URL:      jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/soldout_db
+      SPRING_DATASOURCE_URL:      jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/soldout_db?currentSchema=inventario
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       KAFKA_BOOTSTRAP_SERVERS:    ${KAFKA_BOOTSTRAP_SERVERS}
@@ -222,7 +264,7 @@ services:
       - "${PORT_RESERVAS}:8084"
     environment:
       SPRING_PROFILES_ACTIVE:     docker
-      SPRING_DATASOURCE_URL:      jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/soldout_db
+      SPRING_DATASOURCE_URL:      jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/soldout_db?currentSchema=reservas
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       KAFKA_BOOTSTRAP_SERVERS:    ${KAFKA_BOOTSTRAP_SERVERS}
@@ -249,7 +291,7 @@ services:
       - "${PORT_PAGOS}:8085"
     environment:
       SPRING_PROFILES_ACTIVE:     docker
-      SPRING_DATASOURCE_URL:      jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/soldout_db
+      SPRING_DATASOURCE_URL:      jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/soldout_db?currentSchema=pagos
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       KAFKA_BOOTSTRAP_SERVERS:    ${KAFKA_BOOTSTRAP_SERVERS}
@@ -271,7 +313,7 @@ services:
       - "${PORT_NOTIFICACIONES}:8086"
     environment:
       SPRING_PROFILES_ACTIVE:     docker
-      SPRING_DATASOURCE_URL:      jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/soldout_db
+      SPRING_DATASOURCE_URL:      jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/soldout_db?currentSchema=notificaciones
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       KAFKA_BOOTSTRAP_SERVERS:    ${KAFKA_BOOTSTRAP_SERVERS}
