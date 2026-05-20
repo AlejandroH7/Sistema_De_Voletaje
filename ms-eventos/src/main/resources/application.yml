@@ -5,7 +5,7 @@ spring:
   application:
     name: ms-eventos
   datasource:
-    url: jdbc:postgresql://localhost:5432/db_eventos
+    url: jdbc:postgresql://localhost:5432/soldout_db?currentSchema=eventos
     username: admin
     password: admin123
     driver-class-name: org.postgresql.Driver
@@ -16,6 +16,7 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: eventos
   kafka:
     bootstrap-servers: localhost:9092
     producer:

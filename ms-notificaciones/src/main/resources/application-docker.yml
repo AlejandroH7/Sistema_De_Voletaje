@@ -1,7 +1,11 @@
 spring:
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${DB_NOTIFICACIONES}
+    url: ${SPRING_DATASOURCE_URL}?currentSchema=notificaciones
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
+  jpa:
+    properties:
+      hibernate:
+        default_schema: notificaciones
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}

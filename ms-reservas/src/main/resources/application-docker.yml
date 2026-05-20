@@ -1,8 +1,12 @@
 spring:
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${DB_RESERVAS}
+    url: ${SPRING_DATASOURCE_URL}?currentSchema=reservas
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
+  jpa:
+    properties:
+      hibernate:
+        default_schema: reservas
   data:
     redis:
       host: ${REDIS_HOST}

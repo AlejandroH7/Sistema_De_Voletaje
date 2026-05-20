@@ -1,18 +1,25 @@
 -- =============================================================================
 --  SOLD-OUT CHALLENGE LIVE
---  Script de inicialización de bases de datos
+--  Base de datos unificada: soldout_db
+--  Schemas: usuarios, eventos, inventario, reservas, pagos, notificaciones
 -- =============================================================================
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- =============================================================================
---  1. db_usuarios
+--  SCHEMAS
 -- =============================================================================
-CREATE DATABASE db_usuarios WITH ENCODING = 'UTF8';
-\connect db_usuarios
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE SCHEMA IF NOT EXISTS usuarios;
+CREATE SCHEMA IF NOT EXISTS eventos;
+CREATE SCHEMA IF NOT EXISTS inventario;
+CREATE SCHEMA IF NOT EXISTS reservas;
+CREATE SCHEMA IF NOT EXISTS pagos;
+CREATE SCHEMA IF NOT EXISTS notificaciones;
 
-CREATE TABLE usuarios (
+-- =============================================================================
+--  SCHEMA: usuarios
+-- =============================================================================
+CREATE TABLE usuarios.usuarios (
     id              UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
     nombre          VARCHAR(200) NOT NULL,
     email           VARCHAR(255) NOT NULL,
@@ -22,23 +29,19 @@ CREATE TABLE usuarios (
     estado          VARCHAR(20)  NOT NULL DEFAULT 'ACTIVO',
     creado_en       TIMESTAMP    NOT NULL DEFAULT NOW(),
     actualizado_en  TIMESTAMP    NOT NULL DEFAULT NOW(),
-    CONSTRAINT uq_usuarios_email    UNIQUE (email),
-    CONSTRAINT ck_usuarios_rol      CHECK (rol    IN ('CLIENTE','ORGANIZADOR','ADMIN')),
-    CONSTRAINT ck_usuarios_estado   CHECK (estado IN ('ACTIVO','INACTIVO','BLOQUEADO'))
+    CONSTRAINT uq_usuarios_email  UNIQUE (email),
+    CONSTRAINT ck_usuarios_rol    CHECK (rol    IN ('CLIENTE','ORGANIZADOR','ADMIN')),
+    CONSTRAINT ck_usuarios_estado CHECK (estado IN ('ACTIVO','INACTIVO','BLOQUEADO'))
 );
 
-CREATE INDEX idx_usuarios_email  ON usuarios (email);
-CREATE INDEX idx_usuarios_rol    ON usuarios (rol);
-CREATE INDEX idx_usuarios_estado ON usuarios (estado);
+CREATE INDEX idx_usuarios_email  ON usuarios.usuarios (email);
+CREATE INDEX idx_usuarios_rol    ON usuarios.usuarios (rol);
+CREATE INDEX idx_usuarios_estado ON usuarios.usuarios (estado);
 
 -- =============================================================================
---  2. db_eventos
+--  SCHEMA: eventos
 -- =============================================================================
-CREATE DATABASE db_eventos WITH ENCODING = 'UTF8';
-\connect db_eventos
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
-CREATE TABLE lugares (
+CREATE TABLE eventos.lugares (
     id               UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
     nombre           VARCHAR(200) NOT NULL,
     direccion        TEXT,
@@ -47,11 +50,11 @@ CREATE TABLE lugares (
     creado_en        TIMESTAMP    NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE eventos (
+CREATE TABLE eventos.eventos (
     id             UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
     nombre         VARCHAR(255) NOT NULL,
     descripcion    TEXT,
-    lugar_id       UUID         NOT NULL REFERENCES lugares(id),
+    lugar_id       UUID         NOT NULL REFERENCES eventos.lugares(id),
     fecha_evento   TIMESTAMP    NOT NULL,
     tipo_evento    VARCHAR(20)  NOT NULL,
     estado         VARCHAR(20)  NOT NULL DEFAULT 'BORRADOR',
@@ -61,19 +64,15 @@ CREATE TABLE eventos (
     CONSTRAINT ck_eventos_estado CHECK (estado IN ('BORRADOR','ACTIVO','AGOTADO','CANCELADO'))
 );
 
-CREATE INDEX idx_eventos_lugar_id ON eventos (lugar_id);
-CREATE INDEX idx_eventos_estado   ON eventos (estado);
-CREATE INDEX idx_eventos_fecha    ON eventos (fecha_evento);
-CREATE INDEX idx_eventos_tipo     ON eventos (tipo_evento);
+CREATE INDEX idx_eventos_lugar_id ON eventos.eventos (lugar_id);
+CREATE INDEX idx_eventos_estado   ON eventos.eventos (estado);
+CREATE INDEX idx_eventos_fecha    ON eventos.eventos (fecha_evento);
+CREATE INDEX idx_eventos_tipo     ON eventos.eventos (tipo_evento);
 
 -- =============================================================================
---  3. db_inventario
+--  SCHEMA: inventario
 -- =============================================================================
-CREATE DATABASE db_inventario WITH ENCODING = 'UTF8';
-\connect db_inventario
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
-CREATE TABLE secciones (
+CREATE TABLE inventario.secciones (
     id              UUID           PRIMARY KEY DEFAULT uuid_generate_v4(),
     evento_id       UUID           NOT NULL,
     nombre          VARCHAR(200)   NOT NULL,
@@ -86,9 +85,9 @@ CREATE TABLE secciones (
     CONSTRAINT ck_secciones_tipo          CHECK (tipo IN ('GENERAL','NUMERADO'))
 );
 
-CREATE TABLE inventario_secciones (
+CREATE TABLE inventario.inventario_secciones (
     id                   UUID      PRIMARY KEY DEFAULT uuid_generate_v4(),
-    seccion_id           UUID      NOT NULL UNIQUE REFERENCES secciones(id),
+    seccion_id           UUID      NOT NULL UNIQUE REFERENCES inventario.secciones(id),
     total_asientos       INT       NOT NULL CHECK (total_asientos > 0),
     asientos_disponibles INT       NOT NULL DEFAULT 0,
     asientos_reservados  INT       NOT NULL DEFAULT 0,
@@ -103,9 +102,9 @@ CREATE TABLE inventario_secciones (
     )
 );
 
-CREATE TABLE mesas (
+CREATE TABLE inventario.mesas (
     id         UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
-    seccion_id UUID         NOT NULL REFERENCES secciones(id),
+    seccion_id UUID         NOT NULL REFERENCES inventario.secciones(id),
     nombre     VARCHAR(100) NOT NULL,
     capacidad  INT          NOT NULL CHECK (capacidad > 0),
     estado     VARCHAR(20)  NOT NULL DEFAULT 'DISPONIBLE',
@@ -113,10 +112,10 @@ CREATE TABLE mesas (
     CONSTRAINT ck_mesas_estado         CHECK (estado IN ('DISPONIBLE','PARCIAL','RESERVADA','VENDIDA'))
 );
 
-CREATE TABLE asientos (
+CREATE TABLE inventario.asientos (
     id             UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
-    seccion_id     UUID        NOT NULL REFERENCES secciones(id),
-    mesa_id        UUID        REFERENCES mesas(id),
+    seccion_id     UUID        NOT NULL REFERENCES inventario.secciones(id),
+    mesa_id        UUID        REFERENCES inventario.mesas(id),
     numero_asiento VARCHAR(20) NOT NULL,
     fila           VARCHAR(10),
     estado         VARCHAR(20) NOT NULL DEFAULT 'DISPONIBLE',
@@ -126,23 +125,19 @@ CREATE TABLE asientos (
     CONSTRAINT ck_asientos_estado         CHECK (estado IN ('DISPONIBLE','RESERVADO','VENDIDO'))
 );
 
-CREATE INDEX idx_secciones_evento_id   ON secciones           (evento_id);
-CREATE INDEX idx_secciones_tipo        ON secciones           (tipo);
-CREATE INDEX idx_inventario_seccion_id ON inventario_secciones (seccion_id);
-CREATE INDEX idx_mesas_seccion_id      ON mesas               (seccion_id);
-CREATE INDEX idx_asientos_seccion_id   ON asientos            (seccion_id);
-CREATE INDEX idx_asientos_mesa_id      ON asientos            (mesa_id);
-CREATE INDEX idx_asientos_estado       ON asientos            (estado);
-CREATE INDEX idx_asientos_reserva_id   ON asientos            (reserva_id);
+CREATE INDEX idx_secciones_evento_id   ON inventario.secciones            (evento_id);
+CREATE INDEX idx_secciones_tipo        ON inventario.secciones            (tipo);
+CREATE INDEX idx_inventario_seccion_id ON inventario.inventario_secciones (seccion_id);
+CREATE INDEX idx_mesas_seccion_id      ON inventario.mesas                (seccion_id);
+CREATE INDEX idx_asientos_seccion_id   ON inventario.asientos             (seccion_id);
+CREATE INDEX idx_asientos_mesa_id      ON inventario.asientos             (mesa_id);
+CREATE INDEX idx_asientos_estado       ON inventario.asientos             (estado);
+CREATE INDEX idx_asientos_reserva_id   ON inventario.asientos             (reserva_id);
 
 -- =============================================================================
---  4. db_reservas
+--  SCHEMA: reservas
 -- =============================================================================
-CREATE DATABASE db_reservas WITH ENCODING = 'UTF8';
-\connect db_reservas
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
-CREATE TABLE reservas (
+CREATE TABLE reservas.reservas (
     id                 UUID           PRIMARY KEY DEFAULT uuid_generate_v4(),
     usuario_id         UUID           NOT NULL,
     evento_id          UUID           NOT NULL,
@@ -157,9 +152,9 @@ CREATE TABLE reservas (
     CONSTRAINT ck_reservas_estado       CHECK (estado IN ('PENDIENTE','CONFIRMADO','EXPIRADO','CANCELADO'))
 );
 
-CREATE TABLE detalle_reserva (
+CREATE TABLE reservas.detalle_reserva (
     id              UUID           PRIMARY KEY DEFAULT uuid_generate_v4(),
-    reserva_id      UUID           NOT NULL REFERENCES reservas(id),
+    reserva_id      UUID           NOT NULL REFERENCES reservas.reservas(id),
     seccion_id      UUID           NOT NULL,
     tipo_asiento    VARCHAR(20)    NOT NULL,
     asiento_id      UUID,
@@ -171,22 +166,18 @@ CREATE TABLE detalle_reserva (
     CONSTRAINT ck_detalle_tipo CHECK (tipo_asiento IN ('GENERAL','NUMERADO'))
 );
 
-CREATE INDEX idx_reservas_usuario_id        ON reservas        (usuario_id);
-CREATE INDEX idx_reservas_evento_id         ON reservas        (evento_id);
-CREATE INDEX idx_reservas_estado            ON reservas        (estado);
-CREATE INDEX idx_reservas_expira_en         ON reservas        (expira_en);
-CREATE INDEX idx_reservas_idempotencia      ON reservas        (clave_idempotencia);
-CREATE INDEX idx_detalle_reserva_id         ON detalle_reserva (reserva_id);
-CREATE INDEX idx_detalle_seccion_id         ON detalle_reserva (seccion_id);
+CREATE INDEX idx_reservas_usuario_id   ON reservas.reservas        (usuario_id);
+CREATE INDEX idx_reservas_evento_id    ON reservas.reservas        (evento_id);
+CREATE INDEX idx_reservas_estado       ON reservas.reservas        (estado);
+CREATE INDEX idx_reservas_expira_en    ON reservas.reservas        (expira_en);
+CREATE INDEX idx_reservas_idempotencia ON reservas.reservas        (clave_idempotencia);
+CREATE INDEX idx_detalle_reserva_id    ON reservas.detalle_reserva (reserva_id);
+CREATE INDEX idx_detalle_seccion_id    ON reservas.detalle_reserva (seccion_id);
 
 -- =============================================================================
---  5. db_pagos
+--  SCHEMA: pagos
 -- =============================================================================
-CREATE DATABASE db_pagos WITH ENCODING = 'UTF8';
-\connect db_pagos
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
-CREATE TABLE pagos (
+CREATE TABLE pagos.pagos (
     id                 UUID           PRIMARY KEY DEFAULT uuid_generate_v4(),
     reserva_id         UUID           NOT NULL,
     usuario_id         UUID           NOT NULL,
@@ -203,7 +194,7 @@ CREATE TABLE pagos (
     CONSTRAINT ck_pagos_estado       CHECK (estado IN ('PENDIENTE','COMPLETADO','FALLIDO','REEMBOLSADO'))
 );
 
-CREATE TABLE pagos_salida (
+CREATE TABLE pagos.pagos_salida (
     id           UUID         PRIMARY KEY DEFAULT uuid_generate_v4(),
     id_agregado  UUID         NOT NULL,
     tipo_evento  VARCHAR(100) NOT NULL,
@@ -213,21 +204,17 @@ CREATE TABLE pagos_salida (
     creado_en    TIMESTAMP    NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_pagos_reserva_id         ON pagos        (reserva_id);
-CREATE INDEX idx_pagos_usuario_id         ON pagos        (usuario_id);
-CREATE INDEX idx_pagos_estado             ON pagos        (estado);
-CREATE INDEX idx_pagos_idempotencia       ON pagos        (clave_idempotencia);
-CREATE INDEX idx_salida_no_publicados     ON pagos_salida (publicado, creado_en)
+CREATE INDEX idx_pagos_reserva_id     ON pagos.pagos        (reserva_id);
+CREATE INDEX idx_pagos_usuario_id     ON pagos.pagos        (usuario_id);
+CREATE INDEX idx_pagos_estado         ON pagos.pagos        (estado);
+CREATE INDEX idx_pagos_idempotencia   ON pagos.pagos        (clave_idempotencia);
+CREATE INDEX idx_salida_no_publicados ON pagos.pagos_salida (publicado, creado_en)
     WHERE publicado = FALSE;
 
 -- =============================================================================
---  6. db_notificaciones
+--  SCHEMA: notificaciones
 -- =============================================================================
-CREATE DATABASE db_notificaciones WITH ENCODING = 'UTF8';
-\connect db_notificaciones
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
-CREATE TABLE notificaciones (
+CREATE TABLE notificaciones.notificaciones (
     id                 UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
     usuario_id         UUID        NOT NULL,
     reserva_id         UUID,
@@ -245,8 +232,8 @@ CREATE TABLE notificaciones (
     CONSTRAINT ck_notif_estado CHECK (estado IN ('PENDIENTE','ENVIADO','FALLIDO'))
 );
 
-CREATE INDEX idx_notif_usuario_id    ON notificaciones (usuario_id);
-CREATE INDEX idx_notif_reserva_id    ON notificaciones (reserva_id);
-CREATE INDEX idx_notif_tipo          ON notificaciones (tipo);
-CREATE INDEX idx_notif_estado        ON notificaciones (estado);
-CREATE INDEX idx_notif_idempotencia  ON notificaciones (clave_idempotencia);
+CREATE INDEX idx_notif_usuario_id   ON notificaciones.notificaciones (usuario_id);
+CREATE INDEX idx_notif_reserva_id   ON notificaciones.notificaciones (reserva_id);
+CREATE INDEX idx_notif_tipo         ON notificaciones.notificaciones (tipo);
+CREATE INDEX idx_notif_estado       ON notificaciones.notificaciones (estado);
+CREATE INDEX idx_notif_idempotencia ON notificaciones.notificaciones (clave_idempotencia);

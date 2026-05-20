@@ -1,8 +1,12 @@
 spring:
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${DB_USUARIOS}
+    url: ${SPRING_DATASOURCE_URL}?currentSchema=usuarios
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
+  jpa:
+    properties:
+      hibernate:
+        default_schema: usuarios
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
 

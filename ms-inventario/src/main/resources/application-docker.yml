@@ -1,8 +1,12 @@
 spring:
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${DB_INVENTARIO}
+    url: ${SPRING_DATASOURCE_URL}?currentSchema=inventario
     username: ${POSTGRES_USER}
     password: ${POSTGRES_PASSWORD}
+  jpa:
+    properties:
+      hibernate:
+        default_schema: inventario
   data:
     redis:
       host: ${REDIS_HOST}
