@@ -26,9 +26,13 @@ export default function PagoPage() {
 
   useEffect(() => {
     if (!reserva) return
-    const expira = new Date(reserva.expiraEn).getTime()
+    const expiraStr = reserva.expiraEn.endsWith('Z')
+      ? reserva.expiraEn
+      : reserva.expiraEn + 'Z'
+    const expira = new Date(expiraStr).getTime()
     const interval = setInterval(() => {
-      const restante = Math.max(0, Math.floor((expira - Date.now()) / 1000))
+      const ahora = Date.now()
+      const restante = Math.max(0, Math.floor((expira - ahora) / 1000))
       setTtl(restante)
       if (restante === 0) {
         clearInterval(interval)
