@@ -201,9 +201,12 @@ export default function AdminPage() {
                 </div>
                 <div>
                   <label className="block text-sm text-gray-300 mb-1">Capacidad máxima</label>
-                  <input type="number" required min="1"
+                  <input type="text" inputMode="numeric" pattern="[0-9]*" required
                     value={lugarForm.capacidadMaxima}
-                    onChange={e => setLugarForm({...lugarForm, capacidadMaxima: Number(e.target.value)})}
+                    onChange={e => {
+                      const val = e.target.value.replace(/^0+/, '').replace(/[^0-9]/g, '')
+                      setLugarForm({...lugarForm, capacidadMaxima: val === '' ? '' : Number(val)})
+                    }}
                     className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-purple-500 transition" />
                 </div>
                 <button type="submit" disabled={creandoLugar}
@@ -316,16 +319,22 @@ export default function AdminPage() {
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <label className="block text-xs text-gray-400 mb-1">Capacidad</label>
-                            <input type="number" required min="1"
+                            <input type="text" inputMode="numeric" pattern="[0-9]*" required
                               value={sec.capacidad}
-                              onChange={e => actualizarSeccion(i, 'capacidad', e.target.value)}
+                              onChange={e => {
+                                const val = e.target.value.replace(/^0+/, '').replace(/[^0-9]/g, '')
+                                actualizarSeccion(i, 'capacidad', val === '' ? '' : Number(val))
+                              }}
                               className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500 transition" />
                           </div>
                           <div>
                             <label className="block text-xs text-gray-400 mb-1">Precio (Q)</label>
-                            <input type="number" required min="0"
+                            <input type="text" inputMode="numeric" pattern="[0-9]*" required
                               value={sec.precio}
-                              onChange={e => actualizarSeccion(i, 'precio', e.target.value)}
+                              onChange={e => {
+                                const val = e.target.value.replace(/^0+/, '').replace(/[^0-9]/g, '')
+                                actualizarSeccion(i, 'precio', val === '' ? '' : Number(val))
+                              }}
                               className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-purple-500 transition" />
                           </div>
                         </div>
