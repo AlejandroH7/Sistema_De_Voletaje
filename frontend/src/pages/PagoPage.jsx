@@ -172,7 +172,7 @@ export default function PagoPage() {
             Método de pago
           </h2>
           <div className="grid grid-cols-3 gap-3">
-            {['TARJETA', 'EFECTIVO', 'TRANSFERENCIA'].map(metodo => (
+            {['TARJETA'].map(metodo => (
               <button
                 key={metodo}
                 onClick={() => setMetodoPago(metodo)}
